@@ -6,7 +6,8 @@ const today = () => new Date().toISOString().slice(0, 10);
 function toCsv(rows) {
   if (!rows.length) return '';
   const headers = Object.keys(rows[0]);
-  return [headers.join(','), ...rows.map((r) => headers.map((h) => `"${r[h] ?? ''}"`).join(','))].join('\n');
+  const cell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+  return [headers.join(','), ...rows.map((r) => headers.map((h) => cell(r[h])).join(','))].join('\n');
 }
 
 function download(name, text) {

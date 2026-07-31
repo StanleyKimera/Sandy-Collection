@@ -21,6 +21,27 @@ function receiptText(sale, items, branch) {
     .join('\n');
 }
 
+/** Rebuilds the full response for a sale that is already stored. */
+function saleResponse(saleId) {
+  const sale = db.prepare('SELECT * FROM sale WHERE id = ?').get(saleId);
+  const branch = db.prepare('SELECT * FROM branch WHERE id = ?').get(sale.branch_id);
+  const items = db
+    .prepare(
+      `SELECT si.qty, si.line_total, v.size, v.colour, p.name
+         FROM sale_item si
+         JOIN variant v ON v.id = si.variant_id
+         JOIN product p ON p.id = v.product_id
+        WHERE si.sale_id = ?`
+    )
+    .all(saleId);
+  return {
+    id: sale.id,
+    total: sale.total,
+    change: sale.payment_method === 'cash' ? sale.amount_paid - sale.total : 0,
+    receipt: receiptText(sale, items, branch)
+  };
+}
+
 /**
  * Complete a sale. `client_uid` makes the call idempotent so a re-sent sale
  * from an offline device is never counted twice.
@@ -39,20 +60,20 @@ sales.post('/sales', (req, res) => {
     branch_id
   } = req.body;
 
-  if (!client_uid) return res.status(400).json({ error: 'client_uid is required' });
+  if (!client_uid) return res.status(400).json({ error: 'client_uid is required', code: 'INVALID_SALE' });
   if (!Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ error: 'The cart is empty' });
+    return res.status(400).json({ error: 'The cart is empty', code: 'INVALID_SALE' });
   }
   if (!['cash', 'mobile_money', 'card'].includes(payment_method)) {
-    return res.status(400).json({ error: 'Choose a payment method' });
+    return res.status(400).json({ error: 'Choose a payment method', code: 'INVALID_SALE' });
   }
 
   const existing = db.prepare('SELECT id FROM sale WHERE client_uid = ?').get(client_uid);
-  if (existing) return res.status(200).json({ id: existing.id, duplicate: true });
+  if (existing) return res.status(200).json({ ...saleResponse(existing.id), duplicate: true });
 
   const bId = branchFor(req, branch_id);
   const branch = db.prepare('SELECT * FROM branch WHERE id = ?').get(bId);
-  if (!branch) return res.status(400).json({ error: 'Unknown branch' });
+  if (!branch) return res.status(400).json({ error: 'Unknown branch', code: 'INVALID_SALE' });
 
   const priced = [];
   for (const item of items) {
@@ -61,16 +82,17 @@ sales.post('/sales', (req, res) => {
         `SELECT v.*, p.name FROM variant v JOIN product p ON p.id = v.product_id WHERE v.id = ?`
       )
       .get(item.variant_id);
-    if (!v) return res.status(400).json({ error: `Item ${item.variant_id} not found` });
+    if (!v) return res.status(400).json({ error: `Item ${item.variant_id} not found`, code: 'INVALID_SALE' });
     const stock = db
       .prepare('SELECT quantity FROM stock WHERE variant_id = ? AND branch_id = ?')
       .get(v.id, bId);
     const qty = Math.trunc(item.qty);
-    if (qty <= 0) return res.status(400).json({ error: 'Quantity must be at least 1' });
+    if (qty <= 0) return res.status(400).json({ error: 'Quantity must be at least 1', code: 'INVALID_SALE' });
     if (!stock || stock.quantity < qty) {
-      return res
-        .status(409)
-        .json({ error: `Not enough stock for ${v.name} ${v.size ?? ''} (${stock?.quantity ?? 0} left)` });
+      return res.status(409).json({
+        error: `Not enough stock for ${v.name} ${v.size ?? ''} (${stock?.quantity ?? 0} left)`,
+        code: 'OUT_OF_STOCK'
+      });
     }
     priced.push({ ...v, qty, line_total: v.selling_price * qty });
   }
@@ -80,22 +102,26 @@ sales.post('/sales', (req, res) => {
 
   if (requestedDiscount > 0) {
     if (!branch.allow_discount) {
-      return res
-        .status(403)
-        .json({ error: `${branch.name} does not allow discounts — King never Bargain!` });
+      return res.status(403).json({
+        error: `${branch.name} does not allow discounts — King never Bargain!`,
+        code: 'DISCOUNT_REFUSED'
+      });
     }
     const maxAllowed = Math.floor((subtotal * branch.max_discount_percent) / 100);
     if (requestedDiscount > maxAllowed) {
       return res.status(403).json({
-        error: `Maximum discount at ${branch.name} is ${branch.max_discount_percent}% (UGX ${maxAllowed.toLocaleString()})`
+        error: `Maximum discount at ${branch.name} is ${branch.max_discount_percent}% (UGX ${maxAllowed.toLocaleString()})`,
+        code: 'DISCOUNT_REFUSED'
       });
     }
-    if (!discount_reason) return res.status(400).json({ error: 'A discount needs a reason' });
+    if (!discount_reason) {
+      return res.status(400).json({ error: 'A discount needs a reason', code: 'DISCOUNT_REFUSED' });
+    }
   }
 
   const total = subtotal - requestedDiscount;
   if (payment_method === 'cash' && Number(amount_paid || 0) < total) {
-    return res.status(400).json({ error: 'Amount paid is less than the total' });
+    return res.status(400).json({ error: 'Amount paid is less than the total', code: 'INVALID_SALE' });
   }
 
   const commit = db.transaction(() => {

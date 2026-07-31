@@ -110,6 +110,7 @@ stock.post('/transfers', requireRole('owner', 'manager'), (req, res) => {
       .run(from, to_branch, req.user.id).lastInsertRowid;
     for (const i of items) {
       const qty = Math.trunc(i.qty);
+      if (qty <= 0) throw new Error('Quantity must be at least 1');
       const s = db
         .prepare('SELECT quantity FROM stock WHERE variant_id = ? AND branch_id = ?')
         .get(i.variant_id, from);

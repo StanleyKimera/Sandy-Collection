@@ -54,9 +54,11 @@ export default function Sell({ session, onQueued }) {
     );
 
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const discountValue = branch?.allow_discount ? Math.min(Number(discount || 0), subtotal) : 0;
-  const total = subtotal - discountValue;
   const maxDiscount = Math.floor((subtotal * (branch?.max_discount_percent || 0)) / 100);
+  const discountValue = branch?.allow_discount
+    ? Math.min(Number(discount || 0), subtotal, maxDiscount)
+    : 0;
+  const total = subtotal - discountValue;
   const change = payment === 'cash' ? Number(paid || 0) - total : 0;
 
   const reset = () => {
