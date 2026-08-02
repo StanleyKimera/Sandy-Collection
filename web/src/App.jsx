@@ -3,6 +3,7 @@ import { api, setToken, getToken, flushQueue, queuedSales } from './api.js';
 import Login from './pages/Login.jsx';
 import Sell from './pages/Sell.jsx';
 import Stock from './pages/Stock.jsx';
+import Catalogue from './pages/Catalogue.jsx';
 import Reports from './pages/Reports.jsx';
 import Settings from './pages/Settings.jsx';
 
@@ -81,6 +82,7 @@ export default function App() {
         {[
           ['sell', 'Sell'],
           ['stock', 'Stock'],
+          ['catalogue', 'Catalogue'],
           ['reports', 'Reports'],
           ['settings', 'Settings']
         ]
@@ -99,6 +101,7 @@ export default function App() {
       <main className="page">
         {tab === 'sell' && <Sell session={session} onQueued={() => setPending(queuedSales().length)} />}
         {tab === 'stock' && <Stock session={session} />}
+        {tab === 'catalogue' && <Catalogue session={session} />}
         {tab === 'reports' && <Reports session={session} />}
         {tab === 'settings' && !isAttendant && <Settings session={session} />}
       </main>

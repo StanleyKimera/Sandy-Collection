@@ -8,10 +8,24 @@ admin.use(authRequired);
 admin.get('/users', requireRole('owner', 'manager'), (req, res) => {
   const rows =
     req.user.role === 'owner'
-      ? db.prepare('SELECT id,name,username,role,branch_id,active FROM user ORDER BY branch_id, id').all()
+      ? db.prepare('SELECT id,name,username,role,branch_id,active FROM user WHERE deleted_at IS NULL ORDER BY branch_id, id').all()
       : db
-          .prepare('SELECT id,name,username,role,branch_id,active FROM user WHERE branch_id = ?')
+          .prepare('SELECT id,name,username,role,branch_id,active FROM user WHERE branch_id = ? AND deleted_at IS NULL')
           .all(req.user.branch_id);
+  res.json(rows);
+});
+
+admin.get('/users/history', requireRole('owner'), (req, res) => {
+  const rows = db
+    .prepare(
+      `SELECT u.id,u.name,u.username,u.role,u.branch_id,u.active,u.deleted_at,u.deleted_by,d.name AS deleted_by_name,b.name AS branch_name
+       FROM user u
+       LEFT JOIN user d ON d.id = u.deleted_by
+       LEFT JOIN branch b ON b.id = u.branch_id
+       WHERE u.deleted_at IS NOT NULL
+       ORDER BY u.deleted_at DESC`
+    )
+    .all();
   res.json(rows);
 });
 
@@ -32,6 +46,30 @@ admin.post('/users', requireRole('owner'), (req, res) => {
   } catch {
     res.status(400).json({ error: 'That username is already taken' });
   }
+});
+
+admin.patch('/users/:id/activate', requireRole('owner'), (req, res) => {
+  const userId = Number(req.params.id);
+  const user = db.prepare('SELECT * FROM user WHERE id = ?').get(userId);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  db.prepare('UPDATE user SET active = 1, deleted_at = NULL, deleted_by = NULL WHERE id = ?').run(userId);
+  logAudit(req.user.id, req.user.branch_id, 'user.activate', `${user.username}`);
+  res.json({ ok: true });
+});
+
+admin.delete('/users/:id', requireRole('owner'), (req, res) => {
+  const userId = Number(req.params.id);
+  const user = db.prepare('SELECT * FROM user WHERE id = ?').get(userId);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  if (user.role === 'owner') {
+    return res.status(403).json({ error: 'Cannot delete an owner account' });
+  }
+  db.prepare("UPDATE user SET active = 0, deleted_at = datetime('now'), deleted_by = ? WHERE id = ?").run(
+    req.user.id,
+    userId
+  );
+  logAudit(req.user.id, req.user.branch_id, 'user.delete', `${user.username}`);
+  res.json({ ok: true });
 });
 
 admin.patch('/branches/:id', requireRole('owner'), (req, res) => {

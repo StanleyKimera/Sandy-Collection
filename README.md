@@ -35,7 +35,7 @@ choose *Add to Home screen* and it behaves like an installed app.
 ## Demo sign-ins
 
 | Username | PIN | Role | Branch |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | owner | 1234 | Owner (all branches) | Main |
 | main.manager | 1111 | Manager | Main |
 | main.sales | 2222 | Attendant | Main |
@@ -58,7 +58,7 @@ Change these in **Settings → Staff** before going live.
 ## Who can do what
 
 | | Owner | Manager | Attendant |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Sell | ✓ | ✓ | ✓ |
 | See cost price & profit | ✓ | ✓ | — |
 | Receive stock, count, transfer | ✓ | ✓ | — |
@@ -85,7 +85,7 @@ outbox row is created, or write a small worker that reads `status='queued'` rows
 
 ## Layout
 
-```
+```text
 server/   Node + Express + SQLite API (schema, seed, sales, stock, reports, admin)
 web/      React PWA (Sell, Stock, Reports, Settings)
 ```

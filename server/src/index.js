@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cors from 'cors';
 import { db } from './db.js';
+import './seed.js';
 import { verifyPin, signToken, authRequired } from './auth.js';
 import { catalog } from './routes/catalog.js';
 import { sales } from './routes/sales.js';

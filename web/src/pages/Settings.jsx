@@ -7,6 +7,9 @@ export default function Settings({ session }) {
   const [branches, setBranches] = useState([]);
   const [users, setUsers] = useState([]);
   const [sms, setSms] = useState([]);
+  const [history, setHistory] = useState([]);
+  const [restoredIds, setRestoredIds] = useState({});
+  const [showHistory, setShowHistory] = useState(false);
   const [valuation, setValuation] = useState(null);
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
@@ -17,6 +20,9 @@ export default function Settings({ session }) {
       setUsers(await api('/users'));
       setSms(await api('/sms-outbox'));
       setValuation(await api('/reports/stock-valuation'));
+      if (isOwner) {
+        setHistory(await api('/users/history'));
+      }
     } catch (e) {
       setError(e.message);
     }
@@ -42,6 +48,36 @@ export default function Settings({ session }) {
       await api('/users', { method: 'POST', body: { ...form, branch_id: Number(form.branch_id) } });
       e.target.reset();
       setMsg('Staff member added');
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const activateUser = async (id, fromHistory = false, restoredUser = null) => {
+    try {
+      await api(`/users/${id}/activate`, { method: 'PATCH' });
+      setMsg('User activated');
+      if (fromHistory && restoredUser) {
+        setRestoredIds((current) => ({ ...current, [id]: true }));
+        setHistory((current) => current.map((u) => (u.id === id ? { ...u, active: 1 } : u)));
+        setUsers((current) => {
+          if (current.some((u) => u.id === id)) return current;
+          return [...current, { ...restoredUser, active: 1 }];
+        });
+      } else {
+        load();
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const deleteUser = async (id) => {
+    if (!window.confirm('Delete this user? This cannot be undone.')) return;
+    try {
+      await api(`/users/${id}`, { method: 'DELETE' });
+      setMsg('User deleted');
       load();
     } catch (err) {
       setError(err.message);
@@ -89,12 +125,19 @@ export default function Settings({ session }) {
         <h3>Staff</h3>
         <div className="scroll">
           <table>
-            <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Branch</th></tr></thead>
+            <thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Branch</th>{isOwner && <th>Status</th>}{isOwner && <th>Actions</th>}</tr></thead>
             <tbody>
               {users.map((u) => (
                 <tr key={u.id}>
                   <td>{u.name}</td><td>{u.username}</td><td>{u.role}</td>
                   <td>{branches.find((b) => b.id === u.branch_id)?.name ?? '—'}</td>
+                  {isOwner && <td>{u.active ? 'Active' : 'Inactive'}</td>}
+                  {isOwner && (
+                    <td>
+                      {!u.active && <button className="btn secondary" onClick={() => activateUser(u.id)}>Reactivate</button>}
+                      {u.role !== 'owner' && <button className="btn danger" onClick={() => deleteUser(u.id)}>Delete</button>}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -118,7 +161,63 @@ export default function Settings({ session }) {
             <button className="btn">Add staff</button>
           </form>
         )}
+        {isOwner && (
+          <div style={{ marginTop: 16 }}>
+            <button
+              className="btn secondary"
+              onClick={() => setShowHistory((current) => !current)}
+              type="button"
+            >
+              {showHistory ? 'Hide deleted user history' : 'Show deleted user history'}
+            </button>
+          </div>
+        )}
       </div>
+      {isOwner && showHistory && (
+        <div className="card">
+          <h3>Deleted user history</h3>
+          <div className="scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Username</th>
+                  <th>Role</th>
+                  <th>Branch</th>
+                  <th>Deleted by</th>
+                  <th>Date deleted</th>
+                  <th>Restore</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((u) => (
+                  <tr key={u.id}>
+                    <td>{u.name}</td>
+                    <td>{u.username}</td>
+                    <td>{u.role}</td>
+                    <td>{u.branch_name ?? '—'}</td>
+                    <td>{u.deleted_by_name ?? 'System'}</td>
+                    <td>{new Date(u.deleted_at).toLocaleString()}</td>
+                    <td>
+                      <button
+                      className="btn"
+                      onClick={() => activateUser(u.id, true, u)}
+                      type="button"
+                      disabled={Boolean(restoredIds[u.id])}
+                    >
+                      {restoredIds[u.id] ? 'Restored' : 'Restore'}
+                    </button>
+                    </td>
+                  </tr>
+                ))}
+                {history.length === 0 && (
+                  <tr><td className="muted small" colSpan={7}>No deleted users found.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {valuation && (
         <div className="card">

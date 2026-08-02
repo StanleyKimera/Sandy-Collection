@@ -18,7 +18,7 @@ catalog.get('/products', (req, res) => {
          FROM variant v
          JOIN product p ON p.id = v.product_id
     LEFT JOIN stock s ON s.variant_id = v.id AND s.branch_id = ?
-        WHERE p.active = 1
+        WHERE p.active = 1 AND (v.active IS NULL OR v.active = 1)
      ORDER BY p.name, v.size, v.colour`
     )
     .all(branchId);
@@ -60,6 +60,42 @@ catalog.post('/products', requireRole('owner', 'manager'), (req, res) => {
   const id = create();
   logAudit(req.user.id, req.user.branch_id, 'product.create', name);
   res.status(201).json({ id });
+});
+
+// Soft-delete a variant (owner only)
+catalog.delete('/variants/:id', requireRole('owner'), (req, res) => {
+  const v = db.prepare('SELECT * FROM variant WHERE id = ?').get(req.params.id);
+  if (!v) return res.status(404).json({ error: 'Variant not found' });
+  db.prepare("UPDATE variant SET active = 0, deleted_at = datetime('now'), deleted_by = ? WHERE id = ?").run(
+    req.user.id,
+    req.params.id
+  );
+  logAudit(req.user.id, req.user.branch_id, 'variant.delete', `variant ${v.sku}`);
+  res.json({ ok: true });
+});
+
+// List deleted variants (owner only)
+catalog.get('/products/deleted', requireRole('owner'), (req, res) => {
+  const rows = db
+    .prepare(
+      `SELECT v.id AS variant_id, v.sku, v.size, v.colour, v.selling_price, v.cost_price,
+              p.id AS product_id, p.name, p.category, v.deleted_at, v.deleted_by
+         FROM variant v
+         JOIN product p ON p.id = v.product_id
+        WHERE v.active = 0
+     ORDER BY v.deleted_at DESC`
+    )
+    .all();
+  res.json(rows);
+});
+
+// Restore a deleted variant (owner only)
+catalog.patch('/variants/:id/restore', requireRole('owner'), (req, res) => {
+  const v = db.prepare('SELECT * FROM variant WHERE id = ?').get(req.params.id);
+  if (!v) return res.status(404).json({ error: 'Variant not found' });
+  db.prepare('UPDATE variant SET active = 1, deleted_at = NULL, deleted_by = NULL WHERE id = ?').run(req.params.id);
+  logAudit(req.user.id, req.user.branch_id, 'variant.restore', `variant ${v.sku}`);
+  res.json({ ok: true });
 });
 
 catalog.patch('/variants/:id/price', requireRole('owner'), (req, res) => {

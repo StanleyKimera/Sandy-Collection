@@ -52,10 +52,6 @@ export default function Login({ onSignedIn }) {
         <button className="btn block" disabled={busy || !username || !pin}>
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
-        <p className="small muted" style={{ marginBottom: 0 }}>
-          Demo staff — owner/1234, main.manager/1111, main.sales/2222, two.manager/3333,
-          two.sales1/4444, two.sales2/5555
-        </p>
       </form>
     </div>
   );

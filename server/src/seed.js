@@ -6,7 +6,7 @@ const branches = [
     id: 1,
     name: 'Sandy Collection — Main Branch',
     address: 'Kampala Road, Kampala',
-    phone: '+256 700 000001',
+    phone: '+256 756 651508',
     allow_discount: 0,
     max_discount_percent: 0
   },
@@ -14,28 +14,29 @@ const branches = [
     id: 2,
     name: 'Sandy Collection — Branch Two',
     address: 'Ntinda, Kampala',
-    phone: '+256 700 000002',
+    phone: '+256 709 971109',
     allow_discount: 1,
     max_discount_percent: 10
   }
 ];
 
 const users = [
-  { name: 'Sandy (Owner)', username: 'owner', pin: '1234', role: 'owner', branch_id: 1 },
-  { name: 'Main Manager', username: 'main.manager', pin: '1111', role: 'manager', branch_id: 1 },
-  { name: 'Main Attendant', username: 'main.sales', pin: '2222', role: 'attendant', branch_id: 1 },
-  { name: 'Two Manager', username: 'two.manager', pin: '3333', role: 'manager', branch_id: 2 },
-  { name: 'Two Attendant A', username: 'two.sales1', pin: '4444', role: 'attendant', branch_id: 2 },
-  { name: 'Two Attendant B', username: 'two.sales2', pin: '5555', role: 'attendant', branch_id: 2 }
+  { name: 'Lubanga Stanley Kimera', username: 'Stanley', pin: '2468', role: 'owner', branch_id: 1 },
+  { name: 'Ogangi Emmanuel', username: 'Emma', pin: '0000', role: 'manager', branch_id: 1 },
+  { name: 'Eng. Peter', username: 'Peter', pin: '1111', role: 'attendant', branch_id: 1 },
+  { name: 'Mwesigwa Jordan', username: 'Jordan', pin: '2222', role: 'attendant', branch_id: 1 },
+  { name: 'Dev Evans', username: 'Evans', pin: '3333', role: 'manager', branch_id: 2 },
+  { name: 'Watmon Kenneth', username: 'Ken', pin: '4444', role: 'attendant', branch_id: 2 },
+  { name: 'Kaanyi Jane Natasha', username: 'Natasha', pin: '5555', role: 'attendant', branch_id: 2 }
 ];
 
 const catalogue = [
-  { name: "Men's Kitenge Shirt", category: 'Shirts', cost: 35000, price: 60000, sizes: ['S', 'M', 'L', 'XL'], colours: ['Blue', 'Black'] },
-  { name: 'Ladies Maxi Dress', category: 'Dresses', cost: 55000, price: 95000, sizes: ['S', 'M', 'L'], colours: ['Red', 'Green'] },
-  { name: 'Denim Jeans', category: 'Trousers', cost: 45000, price: 80000, sizes: ['30', '32', '34', '36'], colours: ['Blue'] },
-  { name: 'Cotton T-Shirt', category: 'T-Shirts', cost: 12000, price: 25000, sizes: ['S', 'M', 'L', 'XL'], colours: ['White', 'Black'] },
-  { name: 'Ladies Handbag', category: 'Accessories', cost: 40000, price: 75000, sizes: ['One Size'], colours: ['Brown', 'Black'] },
-  { name: 'Kids Two-Piece Set', category: 'Kids', cost: 20000, price: 38000, sizes: ['2Y', '4Y', '6Y'], colours: ['Pink', 'Blue'] }
+  { name: "Men's Kitenge Shirt", category: 'Shirts', cost: 35000, price: 60000, sizes: ['S', 'M', 'L', 'XL'], colours: ['Blue', 'Black', 'White'] },
+  { name: 'Ladies Maxi Dress', category: 'Dresses', cost: 55000, price: 95000, sizes: ['S', 'M', 'L'], colours: ['Red', 'Green', 'Violet'] },
+  { name: 'Denim Jeans', category: 'Trousers', cost: 45000, price: 80000, sizes: ['30', '32', '34', '36'], colours: ['Blue', 'Gray', 'Black'] },
+  { name: 'Cotton T-Shirt', category: 'T-Shirts', cost: 12000, price: 25000, sizes: ['S', 'M', 'L', 'XL'], colours: ['White', 'Black', 'Brown'] },
+  { name: 'Ladies Handbag', category: 'Accessories', cost: 40000, price: 75000, sizes: ['One Size'], colours: ['Brown', 'Black', 'Pink'] },
+  { name: 'Kids Two-Piece Set', category: 'Kids', cost: 20000, price: 38000, sizes: ['2Y', '4Y', '6Y', '8Y'], colours: ['Pink', 'Blue', 'Black', 'White'] }
 ];
 
 const seed = db.transaction(() => {

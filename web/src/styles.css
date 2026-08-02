@@ -16,6 +16,7 @@ body {
   background: var(--bg);
   color: var(--ink);
   -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 button { font: inherit; cursor: pointer; }

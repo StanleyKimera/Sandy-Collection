@@ -30,7 +30,9 @@ CREATE TABLE IF NOT EXISTS user (
   pin TEXT NOT NULL,
   role TEXT NOT NULL CHECK (role IN ('owner','manager','attendant')),
   branch_id INTEGER REFERENCES branch(id),
-  active INTEGER NOT NULL DEFAULT 1
+  active INTEGER NOT NULL DEFAULT 1,
+  deleted_at TEXT,
+  deleted_by INTEGER REFERENCES user(id)
 );
 
 CREATE TABLE IF NOT EXISTS product (
@@ -137,6 +139,25 @@ CREATE TABLE IF NOT EXISTS sms_outbox (
 CREATE INDEX IF NOT EXISTS idx_sale_branch_date ON sale(branch_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_movement_variant ON stock_movement(variant_id, branch_id);
 `);
+
+const existingUserColumns = db.prepare('PRAGMA table_info(user)').all();
+if (!existingUserColumns.some((c) => c.name === 'deleted_at')) {
+  db.prepare('ALTER TABLE user ADD COLUMN deleted_at TEXT').run();
+}
+if (!existingUserColumns.some((c) => c.name === 'deleted_by')) {
+  db.prepare('ALTER TABLE user ADD COLUMN deleted_by INTEGER REFERENCES user(id)').run();
+}
+
+const existingVariantColumns = db.prepare('PRAGMA table_info(variant)').all();
+if (!existingVariantColumns.some((c) => c.name === 'active')) {
+  db.prepare('ALTER TABLE variant ADD COLUMN active INTEGER NOT NULL DEFAULT 1').run();
+}
+if (!existingVariantColumns.some((c) => c.name === 'deleted_at')) {
+  db.prepare('ALTER TABLE variant ADD COLUMN deleted_at TEXT').run();
+}
+if (!existingVariantColumns.some((c) => c.name === 'deleted_by')) {
+  db.prepare('ALTER TABLE variant ADD COLUMN deleted_by INTEGER REFERENCES user(id)').run();
+}
 
 export function logAudit(userId, branchId, action, detail) {
   db.prepare(
