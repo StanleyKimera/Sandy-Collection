@@ -26,12 +26,11 @@ export default function Sell({ session, onQueued }) {
 
   const results = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const list = q
+    return q
       ? catalogue.filter((v) =>
           [v.name, v.sku, v.size, v.colour, v.category].join(' ').toLowerCase().includes(q)
         )
       : catalogue;
-    return list;
   }, [catalogue, search]);
 
   const add = (v) => {
