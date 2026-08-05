@@ -32,6 +32,59 @@ Then on the shop computer open `http://localhost:4000`.
 On phones/tablets on the same Wi‑Fi open `http://<shop-computer-ip>:4000` — in Chrome or Safari
 choose *Add to Home screen* and it behaves like an installed app.
 
+## Deployment to a public host
+
+This app requires a Node.js backend and SQLite, so it must be deployed on a host that supports a full Node process. Static-only hosts like InfinityFree will not work for the full app.
+
+Recommended deployment options:
+
+- Render.com (Web Service)
+- Railway.app
+- Heroku
+- Fly.io
+- Azure App Service
+
+### Root repository setup
+
+The repository now includes a root `package.json` configured as a workspace with `server` and `web`.
+The deploy host should run:
+
+```bash
+npm install
+npm start
+```
+
+That will install dependencies, build the React frontend, and start the Express backend.
+
+### Build and start commands
+
+- Build: `npm run build`
+- Start: `npm start`
+
+### Port and public URL
+
+The server listens on `process.env.PORT || 4000`, so the host's assigned port is supported. Once deployed, the app will be reachable at the host's public URL, for example:
+
+`https://your-app.onrender.com`
+
+### If you use Heroku
+
+The repository includes a `Procfile` with:
+
+```text
+web: npm start
+```
+
+The server will serve the built frontend from `web/dist` automatically.
+
+### If you use Docker
+
+A `Dockerfile` is included for container deployment. It installs dependencies, builds the frontend, and starts the backend on port `4000`.
+
+## Important note
+
+This is not a static site. The `server` process must run continuously so the frontend can talk to `/api` and the SQLite database can be used.
+
 ## Demo sign-ins
 
 | Username | PIN | Role | Branch |

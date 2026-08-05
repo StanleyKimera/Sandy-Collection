@@ -1,0 +1,17 @@
+{
+  "name": "sandy-collection",
+  "private": true,
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "scripts": {
+    "build": "npm --workspace web run build",
+    "start": "npm --workspace server run start",
+    "postinstall": "npm run build",
+    "heroku-postbuild": "npm run build"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
